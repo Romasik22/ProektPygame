@@ -2,53 +2,218 @@ import pygame
 import random
 import sys
 
-# Инициализация Pygame
 pygame.init()
 
-# Настройки экрана
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game Launcher")
 
-# Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
-# Шрифты
-font = pygame.font.SysFont(None, 40)
+flappy_bird_img = pygame.image.load("610-6106806_flappy-bird-png-flappy-bird-pixelart-transparent-png.png")
+flappy_bird_img = pygame.transform.scale(flappy_bird_img, (50, 50))
+snake_food_img = pygame.image.load("i.webp")
+snake_food_img = pygame.transform.scale(snake_food_img, (30, 30))
+game_over_img = pygame.image.load("maxresdefault.jpg")
+game_over_img = pygame.transform.scale(game_over_img, (400, 300))
 
-# Кнопки
-buttons = [
-    {"text": "Arkanoid", "rect": pygame.Rect(250, 100, 300, 50)},
-    {"text": "Flappy Bird", "rect": pygame.Rect(250, 200, 300, 50)},
-    {"text": "Snake", "rect": pygame.Rect(250, 300, 300, 50)},
-    {"text": "Space Invaders", "rect": pygame.Rect(250, 400, 300, 50)}
-]
+menu_background = pygame.image.load("background.jpg")
+menu_background = pygame.transform.scale(menu_background, (WIDTH, HEIGHT))
 
-# Функция для отрисовки кнопок
-def draw_buttons():
-    for button in buttons:
-        pygame.draw.rect(screen, GREEN, button["rect"])
-        text = font.render(button["text"], True, BLACK)
-        screen.blit(text, (button["rect"].x + 50, button["rect"].y + 10))
 
-# Функция для запуска игры
-def run_game(game_name):
-    if game_name == "Arkanoid":
-        arkanoid()
-    elif game_name == "Flappy Bird":
-        flappy_bird()
-    elif game_name == "Snake":
-        snake_game()
-    elif game_name == "Space Invaders":
-        space_invaders()
+def game_over_screen(game_func, main_menu_func):
+    while True:
+        screen.fill(BLACK)
+        screen.blit(game_over_img, (WIDTH // 2 - 200, HEIGHT // 2 - 150))
+        font = pygame.font.SysFont(None, 40)
+        restart_text = font.render("Restart", True, BLACK)
+        menu_text = font.render("Menu", True, BLACK)
+        restart_rect = pygame.Rect(WIDTH // 2 - 70, HEIGHT // 2 + 180, 140, 40)
+        menu_rect = pygame.Rect(WIDTH // 2 - 70, HEIGHT // 2 + 230, 140, 40)
+        pygame.draw.rect(screen, GREEN, restart_rect)
+        pygame.draw.rect(screen, RED, menu_rect)
+        screen.blit(restart_text, (WIDTH // 2 - 35, HEIGHT // 2 + 190))
+        screen.blit(menu_text, (WIDTH // 2 - 25, HEIGHT // 2 + 240))
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if restart_rect.collidepoint(event.pos):
+                    game_func()
+                elif menu_rect.collidepoint(event.pos):
+                    main_menu_func()
 
-# --- Игры ---
+def pause_screen(game_func, main_menu_func):
+    paused = True
+    while paused:
+        screen.fill(WHITE)
+        font = pygame.font.SysFont(None, 40)
+        resume_text = font.render("Resume", True, BLACK)
+        restart_text = font.render("Restart", True, BLACK)
+        menu_text = font.render("Menu", True, BLACK)
+        resume_rect = pygame.Rect(WIDTH // 2 - 70, HEIGHT // 2 - 50, 140, 40)
+        restart_rect = pygame.Rect(WIDTH // 2 - 70, HEIGHT // 2, 140, 40)
+        menu_rect = pygame.Rect(WIDTH // 2 - 70, HEIGHT // 2 + 50, 140, 40)
+        pygame.draw.rect(screen, GREEN, resume_rect)
+        pygame.draw.rect(screen, BLUE, restart_rect)
+        pygame.draw.rect(screen, RED, menu_rect)
+        screen.blit(resume_text, (WIDTH // 2 - 35, HEIGHT // 2 - 40))
+        screen.blit(restart_text, (WIDTH // 2 - 35, HEIGHT // 2 + 10))
+        screen.blit(menu_text, (WIDTH // 2 - 25, HEIGHT // 2 + 60))
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    paused = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if resume_rect.collidepoint(event.pos):
+                    paused = False
+                elif restart_rect.collidepoint(event.pos):
+                    game_func()
+                elif menu_rect.collidepoint(event.pos):
+                    main_menu_func()
 
-# Арканоид
+
+def flappy_bird():
+    bird_x = 50
+    bird_y = HEIGHT // 2
+    bird_velocity = 0
+    gravity = 0.7
+    jump_strength = -6
+    pipe_width = 70
+    pipe_gap = 200
+    pipe_velocity = 5
+    pipes = []
+    score = 0
+    clock = pygame.time.Clock()
+
+    def draw_bird():
+        screen.blit(flappy_bird_img, (bird_x, bird_y))
+
+    def draw_pipes():
+        for pipe in pipes:
+            pygame.draw.rect(screen, GREEN, pipe)
+
+    def check_collision():
+        bird_rect = pygame.Rect(bird_x, bird_y, 50, 50)
+        for pipe in pipes:
+            pipe_rect = pygame.Rect(pipe[0], pipe[1], pipe[2], pipe[3])
+            if bird_rect.colliderect(pipe_rect):
+                return True
+        if bird_y + 50 > HEIGHT or bird_y < 0:
+            return True
+        return False
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bird_velocity = jump_strength
+                if event.key == pygame.K_ESCAPE:
+                    pause_screen(flappy_bird, main_menu)
+
+        bird_velocity += gravity
+        bird_y += bird_velocity
+
+        if len(pipes) == 0 or pipes[-1][0] < WIDTH - 200:
+            pipe_height = random.randint(100, HEIGHT - pipe_gap - 100)
+            pipes.append([WIDTH, 0, pipe_width, pipe_height])
+            pipes.append([WIDTH, pipe_height + pipe_gap, pipe_width, HEIGHT - pipe_height - pipe_gap])
+
+        for pipe in pipes:
+            pipe[0] -= pipe_velocity
+
+        if pipes[0][0] + pipe_width < 0:
+            pipes.pop(0)
+            pipes.pop(0)
+            score += 1
+
+        if check_collision():
+            game_over_screen(flappy_bird, main_menu)
+            return
+
+        screen.fill(WHITE)
+        draw_bird()
+        draw_pipes()
+        font = pygame.font.SysFont(None, 40)
+        score_text = font.render(f"Score: {score}", True, BLACK)
+        screen.blit(score_text, (10, 10))
+        pygame.display.flip()
+        clock.tick(30)
+
+
+def snake_game():
+    snake_size = 20
+    snake = [(100, 100), (80, 100), (60, 100)]
+    direction = "RIGHT"
+    food = [random.randint(0, (WIDTH - snake_size) // snake_size) * snake_size,
+            random.randint(0, (HEIGHT - snake_size) // snake_size) * snake_size]
+    clock = pygame.time.Clock()
+    snake_speed = 10
+
+    def draw_snake():
+        for segment in snake:
+            pygame.draw.rect(screen, GREEN, (*segment, snake_size, snake_size))
+
+    def draw_food():
+        screen.blit(snake_food_img, (food[0], food[1]))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP and direction != "DOWN":
+                    direction = "UP"
+                if event.key == pygame.K_DOWN and direction != "UP":
+                    direction = "DOWN"
+                if event.key == pygame.K_LEFT and direction != "RIGHT":
+                    direction = "LEFT"
+                if event.key == pygame.K_RIGHT and direction != "LEFT":
+                    direction = "RIGHT"
+                if event.key == pygame.K_ESCAPE:
+                    pause_screen(snake_game, main_menu)
+
+        if direction == "UP":
+            new_head = [snake[0][0], snake[0][1] - snake_size]
+        elif direction == "DOWN":
+            new_head = [snake[0][0], snake[0][1] + snake_size]
+        elif direction == "LEFT":
+            new_head = [snake[0][0] - snake_size, snake[0][1]]
+        elif direction == "RIGHT":
+            new_head = [snake[0][0] + snake_size, snake[0][1]]
+
+        if new_head[0] < 0 or new_head[0] >= WIDTH or new_head[1] < 0 or new_head[1] >= HEIGHT or new_head in snake:
+            game_over_screen(snake_game, main_menu)
+            return
+
+        snake.insert(0, new_head)
+        if new_head[0] == food[0] and new_head[1] == food[1]:
+            food = [random.randint(0, (WIDTH - snake_size) // snake_size) * snake_size,
+                    random.randint(0, (HEIGHT - snake_size) // snake_size) * snake_size]
+        else:
+            snake.pop()
+
+        screen.fill(WHITE)
+        draw_snake()
+        draw_food()
+        pygame.display.flip()
+        clock.tick(snake_speed)
+
+
 def arkanoid():
     paddle_width = 100
     paddle_height = 20
@@ -102,7 +267,8 @@ def arkanoid():
             ball.speed_y = -ball.speed_y
 
         if ball.rect.bottom >= HEIGHT:
-            running = False
+            game_over_screen(arkanoid, main_menu)
+            return
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
@@ -113,165 +279,14 @@ def arkanoid():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pause_screen(arkanoid, main_menu)
 
         pygame.display.flip()
         clock.tick(60)
 
-    pygame.quit()
-    print("Game Over!")
 
-# Flappy Bird
-def flappy_bird():
-    bird_width = 50
-    bird_height = 50
-    gravity = 1
-    jump_strength = -7
-    pipe_width = 60
-    pipe_gap = 200
-    pipe_speed = 4
-
-    class Bird:
-        def __init__(self):
-            self.rect = pygame.Rect(100, HEIGHT // 2, bird_width, bird_height)
-            self.velocity = 0
-
-        def move(self):
-            self.velocity += gravity
-            self.rect.y += self.velocity
-
-        def jump(self):
-            self.velocity = jump_strength
-
-    class Pipe:
-        def __init__(self):
-            self.x = WIDTH
-            self.height = random.randint(100, HEIGHT - pipe_gap - 100)
-            self.top = pygame.Rect(self.x, 0, pipe_width, self.height)
-            self.bottom = pygame.Rect(self.x, self.height + pipe_gap, pipe_width, HEIGHT - self.height - pipe_gap)
-
-        def move(self):
-            self.x -= pipe_speed
-            self.top.x = self.x
-            self.bottom.x = self.x
-
-        def reset(self):
-            self.x = WIDTH
-            self.height = random.randint(100, HEIGHT - pipe_gap - 100)
-            self.top = pygame.Rect(self.x, 0, pipe_width, self.height)
-            self.bottom = pygame.Rect(self.x, self.height + pipe_gap, pipe_width, HEIGHT - self.height - pipe_gap)
-
-    bird = Bird()
-    pipes = [Pipe()]
-    running = True
-
-    clock = pygame.time.Clock()
-
-    while running:
-        screen.fill(WHITE)
-        pygame.draw.rect(screen, BLUE, bird.rect)
-
-        for pipe in pipes:
-            pygame.draw.rect(screen, GREEN, pipe.top)
-            pygame.draw.rect(screen, GREEN, pipe.bottom)
-
-        bird.move()
-
-        if bird.rect.top <= 0 or bird.rect.bottom >= HEIGHT:
-            running = False
-
-        for pipe in pipes:
-            pipe.move()
-            if pipe.x + pipe_width < 0:
-                pipes.remove(pipe)
-                pipes.append(Pipe())
-
-            if bird.rect.colliderect(pipe.top) or bird.rect.colliderect(pipe.bottom):
-                running = False
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:
-            bird.jump()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        pygame.display.flip()
-        clock.tick(90  )
-
-    pygame.quit()
-    print("Game Over!")
-
-def snake_game():
-    snake_size = 20
-    snake_speed = 15
-    food_size = 20
-
-    class Snake:
-        def __init__(self):
-            self.body = [(100, 100), (80, 100), (60, 100)]
-            self.direction = (snake_size, 0)
-
-        def move(self):
-            head_x, head_y = self.body[0]
-            new_head = (head_x + self.direction[0], head_y + self.direction[1])
-            self.body = [new_head] + self.body[:-1]
-
-        def grow(self):
-            tail_x, tail_y = self.body[-1]
-            self.body.append((tail_x, tail_y))
-
-        def collides_with_boundaries(self):
-            head_x, head_y = self.body[0]
-            return head_x < 0 or head_x >= WIDTH or head_y < 0 or head_y >= HEIGHT
-
-        def collides_with_self(self):
-            return len(self.body) != len(set(self.body))
-
-    snake = Snake()
-    food = (random.randint(0, (WIDTH - food_size) // food_size) * food_size,
-            random.randint(0, (HEIGHT - food_size) // food_size) * food_size)
-    running = True
-
-    clock = pygame.time.Clock()
-
-    while running:
-        screen.fill(WHITE)
-        for segment in snake.body:
-            pygame.draw.rect(screen, GREEN, pygame.Rect(segment[0], segment[1], snake_size, snake_size))
-
-        pygame.draw.rect(screen, RED, pygame.Rect(food[0], food[1], food_size, food_size))
-
-        snake.move()
-
-        if snake.collides_with_boundaries() or snake.collides_with_self():
-            running = False  # Проигрыш, если змейка столкнулась с границами или собой
-
-        if (snake.body[0][0], snake.body[0][1]) == food:
-            snake.grow()
-            food = (random.randint(0, (WIDTH - food_size) // food_size) * food_size,
-                    random.randint(0, (HEIGHT - food_size) // food_size) * food_size)
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] and snake.direction != (snake_size, 0):
-            snake.direction = (-snake_size, 0)
-        if keys[pygame.K_RIGHT] and snake.direction != (-snake_size, 0):
-            snake.direction = (snake_size, 0)
-        if keys[pygame.K_UP] and snake.direction != (0, snake_size):
-            snake.direction = (0, -snake_size)
-        if keys[pygame.K_DOWN] and snake.direction != (0, -snake_size):
-            snake.direction = (0, snake_size)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        pygame.display.flip()
-        clock.tick(snake_speed)
-
-    pygame.quit()
-    print("Game Over!")
-
-# Space Invaders
 def space_invaders():
     player_width = 50
     player_height = 20
@@ -330,13 +345,11 @@ def space_invaders():
         for alien in aliens:
             pygame.draw.rect(screen, GREEN, alien.rect)
 
-        # Перемещение пули
         for bullet in bullets[:]:
             bullet.move()
             if bullet.rect.bottom < 0:
                 bullets.remove(bullet)
 
-        # Столкновения с пришельцами
         for alien in aliens[:]:
             for bullet in bullets[:]:
                 if alien.rect.colliderect(bullet.rect):
@@ -344,12 +357,11 @@ def space_invaders():
                     bullets.remove(bullet)
                     break
 
-        # Столкновения с игроком
         for alien in aliens:
             if alien.rect.colliderect(player.rect):
-                running = False  # Проигрыш, если пришелец столкнулся с игроком
+                game_over_screen(space_invaders, main_menu)
+                return
 
-        # Движение пришельцев
         for alien in aliens:
             alien.move()
             if alien.rect.left <= 0 or alien.rect.right >= WIDTH:
@@ -367,32 +379,45 @@ def space_invaders():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pause_screen(space_invaders, main_menu)  # Передали main_menu
 
         pygame.display.flip()
         clock.tick(60)
 
-    pygame.quit()
-    print("Game Over!")
 
-# Главное меню
 def main_menu():
     running = True
     while running:
-        screen.fill(WHITE)
-        draw_buttons()
+        screen.blit(menu_background, (0, 0))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                for button in buttons:
-                    if button["rect"].collidepoint(pos):
-                        run_game(button["text"])
+        font = pygame.font.SysFont(None, 40)
+        title_text = font.render("Game Launcher", True, BLACK)
+        screen.blit(title_text, (WIDTH // 2 - 100, 50))
+
+        buttons = [
+            ("Flappy Bird", 150, flappy_bird),
+            ("Snake", 250, snake_game),
+            ("Arkanoid", 350, arkanoid),
+            ("Space Invaders", 450, space_invaders)
+        ]
+
+        for text, y, game_func in buttons:
+            pygame.draw.rect(screen, GREEN, (WIDTH // 2 - 100, y, 200, 50))
+            label = font.render(text, True, BLACK)
+            screen.blit(label, (WIDTH // 2 - 80, y + 10))
 
         pygame.display.flip()
 
-    pygame.quit()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                for text, btn_y, game_func in buttons:
+                    if WIDTH // 2 - 100 <= x <= WIDTH // 2 + 100 and btn_y <= y <= btn_y + 50:
+                        game_func()
 
-# Запуск главного меню
 main_menu()
